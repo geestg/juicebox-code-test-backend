@@ -4,7 +4,7 @@ A Laravel 13 REST API for user accounts, posts, and current weather in Perth.
 
 **Run locally**
 
-Requirements are PHP 8.3 or newer with `pdo_mysql` and `pdo_sqlite`, Composer, and Docker Compose with the Docker engine running. Clone the repository and run this command from its root:
+Requirements are PHP 8.4.1 or newer with `pdo_mysql` and `pdo_sqlite`, Composer, and Docker Compose with the Docker engine running. Clone the repository and run this command from its root:
 
 ```sh
 composer juicebox:dev
