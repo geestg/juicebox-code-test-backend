@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Foundation\Inspiring;
+use App\Jobs\RefreshWeather;
 use App\Jobs\SendWelcomeEmail;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -23,3 +25,5 @@ Artisan::command('welcome:send {user : User ID}', function (string $user): int {
 
     return 0;
 })->purpose('Queue a welcome email for an existing user');
+
+Schedule::job(new RefreshWeather)->hourly();
