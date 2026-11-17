@@ -33,6 +33,16 @@
         }
     },
     "scripts": {
+        "juicebox:setup": [
+            "Composer\\Config::disableProcessTimeout",
+            "@composer install --no-interaction",
+            "@php scripts/setup.php"
+        ],
+        "juicebox:dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "@juicebox:setup",
+            "@php artisan serve"
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",

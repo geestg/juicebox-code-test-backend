@@ -1,58 +1,62 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Juicebox Backend Code Test
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 13 REST API for user accounts, posts, and current weather in Perth.
 
-## About Laravel
+**Run locally**
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Requirements are PHP 8.3 or newer with `pdo_mysql` and `pdo_sqlite`, Composer, and Docker Compose with the Docker engine running. Clone the repository and run this command from its root:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```sh
+composer juicebox:dev
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The command installs PHP dependencies, creates `.env` with a generated local database password when needed, waits for MySQL, runs migrations, and starts the API at `http://127.0.0.1:8000`. It preserves an existing `.env`. Use `composer juicebox:setup` to complete setup without starting the HTTP server.
 
-## Contributing
+**API reference**
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Send `Accept: application/json`. Send `Content-Type: application/json` with JSON bodies. Routes marked Bearer require `Authorization: Bearer <token>`.
 
-## Code of Conduct
+| Method | Path | Access | Input and success response |
+| --- | --- | --- | --- |
+| POST | `/api/register` | Public | `name`, `email`, `password`, `password_confirmation`. Returns `201` and queues a welcome email. |
+| POST | `/api/login` | Public | `email`, `password`. Returns `200` with `token` and `token_type`. |
+| POST | `/api/logout` | Bearer | Revokes the current token and returns `204`. |
+| GET | `/api/users` | Bearer | Optional `page` and `per_page`. Returns `200` with paginated `id` and `name` fields. |
+| GET | `/api/users/{id}` | Bearer | Returns `200` with the user's `id` and `name`. |
+| GET | `/api/posts` | Bearer | Optional `page` and `per_page`. Returns `200` with posts ordered by newest ID first. |
+| GET | `/api/posts/{id}` | Bearer | Returns `200` with the post. |
+| POST | `/api/posts` | Bearer | `title` and `body`. Returns `201`. Ownership comes from the authenticated account. |
+| PATCH | `/api/posts/{id}` | Owner | Supply `title`, `body`, or both to edit a post. Returns `200`. |
+| DELETE | `/api/posts/{id}` | Owner | Deletes the post and returns `204`. |
+| GET | `/api/weather` | Public | Returns `200` with current conditions in Perth. |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Paginated responses contain `data`, `current_page`, `per_page`, `last_page`, and `total`. The default page size is 15 and the maximum is 100. Error responses use `401` for invalid credentials or a missing or invalid token, `403` for a forbidden post mutation, `404` for a missing record, `422` for invalid input, and `429` for throttled authentication requests.
 
-## Security Vulnerabilities
+**Queue and scheduler**
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+From separate terminals in the project root:
 
-## License
+```sh
+php artisan queue:work database
+php artisan schedule:work
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The scheduler queues a weather refresh every hour. After registering a user, use their ID to enqueue a welcome email manually. For example:
+
+```sh
+php artisan welcome:send 1
+```
+
+The default `MAIL_MAILER=log` writes the email to `storage/logs/laravel.log`. Use `php artisan schedule:list` to inspect the hourly job.
+
+**Perth weather**
+
+The public, non-commercial [Open-Meteo Forecast API](https://open-meteo.com/en/docs) needs no API key or weather environment variables. The response includes the local timestamp in `Australia/Perth`, temperature in Celsius, relative humidity, the WMO weather code, and wind speed in km/h. Data is cached for 15 minutes. If a fresh request fails or returns incomplete data, the API responds with `503` and a generic message.
+
+**Tests**
+
+```sh
+php artisan test
+```
+
+Feature tests use SQLite in memory. Weather tests fake upstream requests, and email tests fake queue dispatch. Local smoke tests covered MySQL migrations, token revocation, the database worker with the log mailer, and a live Open-Meteo request.
