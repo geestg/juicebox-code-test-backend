@@ -40,7 +40,7 @@ class PostTest extends TestCase
             'title' => 'First post',
             'body' => 'Post content',
             'user_id' => $other->id,
-        ])->assertCreated()->assertJsonPath('data.user_id', $owner->id);
+        ])->assertCreated()->assertJsonPath('data.user_id', $owner->id)->assertJsonMissingPath('data.user');
 
         $this->assertDatabaseHas('posts', ['title' => 'First post', 'user_id' => $owner->id]);
     }

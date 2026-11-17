@@ -35,7 +35,7 @@ class PostController extends Controller
         $post->user()->associate($request->user());
         $post->save();
 
-        return response()->json(['data' => $post], 201);
+        return response()->json(['data' => $post->unsetRelation('user')], 201);
     }
 
     public function update(Request $request, Post $post): JsonResponse
