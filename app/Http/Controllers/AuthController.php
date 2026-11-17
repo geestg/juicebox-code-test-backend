@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendWelcomeEmail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::create($data);
+        SendWelcomeEmail::dispatch($user->id);
 
         return response()->json([
             'data' => $user->only('id', 'name', 'email'),
